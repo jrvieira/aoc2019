@@ -1,0 +1,65 @@
+data Vector = { dir :: Point , δ :: Int  }
+
+radar :: [Vector]
+
+map orderBy δ . groupBy angle (asc)
+
+iterate 2d !! 200
+
+where
+   angle = 
+
+NOTE: Quadrants are: TR(+,-) BR(+,+) BL(-,+) TL(-,-)
+
+     -
+    -1   # (2,-1)
+- -1 0 1 2 3 4 5 +
+     1
+     2
+     3   # (2,3)
+     4
+     5
+
+-- day 14:
+
+Ch = Compound String | Elemental String
+Product = Ch Int
+Reaction = Product [Product]
+
+Elemental has no Reactions
+Compound has > 0 Reactions
+
+1. φ (Ch,i) <- desired product
+2. for every φ Ch Reaction get all possible ordered sets until (sum i) >= φ i
+3. recursively repeat step .2 to find all possible Elemental sums
+4. find path to minimum
+
+How to achieve step .2
+
+1. sort set of Rections by ascending i order
+orderedRs :: [Reaction] -> [Reaction]
+orderedRs = sortBy (comparing i)
+2.  
+   GOAL: 5
+   SET : [6,5,4,3,2,1]
+
+   6 OK
+   5 OK
+   4 4 OK
+   4 3 OK
+   4 2 OK
+   4 1 OK
+   3 3 OK
+   3 2 OK
+   3 1 1 OK
+   2 2 2 OK
+   2 2 1 OK
+   2 1 1 1 OK
+   1 1 1 1 1 OK
+
+todo:
+-  study echo
+-  draw data structure map (by hand):
+   -  tree of possible combinations of recipesm (crt)
+   -  tree of crts ("ORE" is leaf)
+-  recursively find ORE cost and select by minimum

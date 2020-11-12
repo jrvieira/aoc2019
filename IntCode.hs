@@ -1,88 +1,112 @@
-module IntCode where
+module IntCode (State (..),Signal (..),empty,ini,run,tick,amp,ticks,(?)) where
    
-import Data.List.Split
-import qualified Data.IntMap.Lazy as M
---import Debug.Trace
+--import Zero
+import qualified Data.Map.Lazy as M
 
---infix 0 #
---(#) = flip trace
+type Mem = M.Map Integer Integer
 
-data Memory = Memory { memory :: M.IntMap Int , pointer :: Int , input :: [Int] , output :: [Int]}
+infixr 1 ?
+(?) :: Mem -> Integer -> Integer
+m ? k = M.findWithDefault 0 (fromInteger k) m
+
+data State = State { memory :: Mem , pointer :: Integer , input :: Integer , output :: Integer , relbase :: Integer }
    deriving Show
-   
-data Op = Op { code :: Int , parameters :: Int }
+
+data Op = Op { code :: Integer , parameters :: Integer }
    deriving Show
 
--- get program from file
-ingest :: String -> IO (M.IntMap Int)
-ingest f = do
-   x <- readFile f
-   pure . memo . map read . splitOn "," $ x
+data Signal = Signal { signal :: Integer , state :: State } 
+            | Result { signal :: Integer , state :: State }
 
--- get program from [Int]
-memo :: [Int] -> M.IntMap Int
-memo = M.fromList . zip [0..]
+instance Show Signal where
+   show (Signal sig st) = "Σ " ++ show sig ++ " " ++ show (output st)
+   show (Result sig st) = "Ρ " ++ show sig ++ " " ++ show (output st)
 
-ini :: M.IntMap Int -> Memory
-ini mem = Memory mem 0 [] []
+-- empty memory
+empty :: State
+empty = State M.empty 0 0 0 0
 
-run :: Memory -> Int
-run mem@(Memory m p _ o)
-   | n == 99 = head o
-   | otherwise = run $ step op mem
+-- get program from [Integer]
+ini :: Integer -> [Integer] -> State
+ini i l = empty { memory = M.fromList $ zip [0..] l , input = i }
+
+-- run until halt
+run :: State -> Signal
+run μ
+   | Result _ _ <- sig = sig
+   | otherwise = run $ state sig
    where
+   sig = tick μ
+
+-- (!! n) . ticks
+-- take n . ticks
+ticks :: Signal -> [Signal]
+ticks s
+   | Signal sig μ <- s = s : ticks (amp sig μ)
+   | Result _ _ <- s = []
+
+-- run amp (i/o)        -> (Integer,State)
+amp :: Integer -> State -> Signal
+amp s μ = tick $ μ { input = s }
+
+-- step until output or halt
+tick :: State -> Signal
+tick μ@(State m p _ o _)
+   | Op 4 _ <- op = Signal (output μ') μ' -- # "signal " ++ show (head $ output μ')
+   | Op 99 _ <- op = Result o μ -- # "HALT " ++ show (head o)
+   | otherwise = tick μ' 
+   where
+   n = m ? p
    op = Op (mod n 100) (div n 100)
-   n = m M.! p
+   μ' = step op $ μ
 
-data Signal = Output Memory Int | Return Int
-
-run' :: Memory -> Int -> Signal
-run' mem s = go $ mem { input = input mem ++ [s] }
-   where
-   go :: Memory -> Signal
-   go mem@(Memory m p i o)
-      | Op 4 _ <- op = Output mem' . head $ output mem'
-      | Op 99 _ <- op = Return . head $ output mem
-      | otherwise = go mem' 
-      where
-      n = m M.! p
-      op = Op (mod n 100) (div n 100)
-      mem' = step op $ mem
-
-step :: Op -> Memory -> Memory
-step op mem@(Memory m p is o) 
+step :: Op -> State -> State
+step op μ@(State m p i _ r) 
+-- | False # show (op,o) = undefined
    -- sum
-   | 1 <- c = Memory (M.insert (m M.! (p + 3)) (at 1 + at 2) m) (p + 4) is o
+   | 1 <- c = μ { memory = set 3 (get 1 + get 2) , pointer = p + 4 }
    -- mul
-   | 2 <- c = Memory (M.insert (m M.! (p + 3)) (at 1 * at 2) m) (p + 4) is o
-   -- read in (write input to pos)
-   | 3 <- c = Memory (M.insert (m M.! (p + 1)) i m) (p + 2) ii o
+   | 2 <- c = μ { memory = set 3 (get 1 * get 2) , pointer = p + 4 }
+   -- read (write in)
+   | 3 <- c = μ { memory = set 1 i , pointer = p + 2 } 
    -- write out
-   | 4 <- c = Memory m (p + 2) is (at 1 : o)
+   | 4 <- c = μ { pointer = p + 2 , output = get 1 }
    -- jump
-   | 5 <- c , at 1 /= 0 = Memory m (at 2) is o
-   | 5 <- c = Memory m (p + 3) is o
-   | 6 <- c , at 1 == 0 = Memory m (at 2) is o
-   | 6 <- c = Memory m (p + 3) is o 
+   | 5 <- c , get 1 /= 0 = μ { pointer = get 2 }
+   | 5 <- c = μ { pointer = p + 3 }
+   | 6 <- c , get 1 == 0 = μ { pointer = get 2 }
+   | 6 <- c = μ { pointer = p + 3 }
    -- conditional insert
-   | 7 <- c = Memory (M.insert (m M.! (p + 3)) (bint $ at 1 < at 2) m) (p + 4) is o
-   | 8 <- c = Memory (M.insert (m M.! (p + 3)) (bint $ at 1 == at 2) m) (p + 4) is o
+   | 7 <- c = μ { memory = set 3 (toInteger . fromEnum $ get 1 < get 2) , pointer = p + 4 }
+   | 8 <- c = μ { memory = set 3 (toInteger . fromEnum $ get 1 == get 2) , pointer = p + 4 }
+   -- relative base adjustment
+   | 9 <- c = μ { relbase = get 1 + r , pointer = p + 2 } 
    -- error
    | otherwise = error $ "invalid instruction code: " ++ show c
    where
    c = code op
-   i = head is
-   ii = tail is
-   at x
-      | mode == 0 = m M.! arg 
+   -- parameter modes
+   get t
+      -- position mode
+      | mode == 0 = m ? arg 
+      -- immediate mode 
       | mode == 1 = arg
-      | otherwise = error $ "invalid mode: " ++ show mode
+      -- relative mode
+      | mode == 2 = m ? arg + r
+      | otherwise = error $ "invalid get mode: " ++ show mode
       where
-      mode = op <!> x
-      arg = m M.! (p + x) 
-   bint True = 1
-   bint False = 0
+      mode = op <?> t
+      arg = m ? p + t 
+   set t x = M.insert target x m
+      where
+      mode = op <?> t
+      arg = m ? p + t
+      target
+         | mode == 0 = arg
+         | mode == 2 = arg + r
+         | otherwise = error $ "invalid set mode: " ++ show mode
 
 -- parameter i
-(<!>) :: Op -> Int -> Int
-op <!> i = (parameters op `mod` 10^i) `div` 10^(i-1) 
+(<?>) :: Op -> Integer -> Integer
+op <?> i = (parameters op `mod` 10^i) `div` 10^(i-1) 
+

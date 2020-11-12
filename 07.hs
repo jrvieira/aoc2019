@@ -47,13 +47,13 @@ main = do
    print . maximumBy (comparing snd) . map (id &&& rthrust (ini acs)) $ permutations [5..9]
 
 -- alternative, monolith function
-maxThrustAlt m = maximumBy (comparing snd) . map (id &&& (\phsq -> foldl' (\s p -> run $ Memory m 0 [p,s] []) 0 phsq)) $ permutations [0..4]
+maxThrustAlt m = maximumBy (comparing snd) . map (id &&& (\phsq -> foldl' (\s p -> run $ empty { input = [p,s] }) 0 phsq)) $ permutations [0..4]
 
 thrust :: [Int] -> Int
 thrust phaseSequence = foldl' amp 0 phaseSequence
 
 amp :: Int -> Int -> Int
-amp signal phase = run $ Memory acs 0 [phase,signal] []
+amp signal phase = run $ empty { input = [phase,signal] }
 
 -- Part II
 
