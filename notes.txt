@@ -58,8 +58,10 @@ orderedRs = sortBy (comparing i)
    1 1 1 1 1 OK
 
 todo:
--  study echo
--  draw data structure map (by hand):
-   -  tree of possible combinations of recipesm (crt)
-   -  tree of crts ("ORE" is leaf)
+v  study echo
+v  draw data structure map (by hand):
+   v  tree of possible combinations of recipesm (crt)
+   v  tree of crts ("ORE" is leaf)
 -  recursively find ORE cost and select by minimum
+
+

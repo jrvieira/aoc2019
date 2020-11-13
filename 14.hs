@@ -1,25 +1,25 @@
 import Zero
-import Util
-import Data.List.Extra (sortBy,splitOn,stripInfix)
+import Data.List.Extra (splitOn,stripInfix)
 import Data.Maybe
 import Data.Tuple
 import Data.Bifunctor
 import Data.List
 import Data.Ord
+import Data.Function
 import Control.Monad
 
-data Ch = Ch { name :: String } 
+newtype Ch = Ch { name :: String } 
    deriving (Eq,Show)
 
 data Product = P { ch :: Ch , qt :: Int }
 
 instance Show Product where
-   show (P c q) = show q ++ (name c)
+   show (P c q) = " " ++ show q ++ name c ++ " "
 
 data Reaction = R { produce :: Product , ingredients :: [Product] }
 
 instance Show Reaction where
-   show (R p i) = show p ++ show i ++ "\n"
+   show (R p i) = show p ++ show i ++ " "
 
 data Tree a = Root [Tree a] | Tree a [Tree a] 
 
@@ -36,14 +36,28 @@ parse = map f . lines
 main :: IO ()
 main = do
    input <- parse <$> readFile "14.txt"
-   print $ search (Ch "FUEL") input
-   print . part 3 $ search (Ch "FUEL") input
+-- print $ search (Ch "RKBM") input
+-- print $ search (Ch "ORE") input
+-- print $ search (Ch "FUEL") input
+   print $ calc (Ch "ORE") input (P (Ch "QMVN") 1)
+
+calc :: Ch -> [Reaction] -> Product -> Int
+-- r basic resource chemical
+-- u universe of all reactions
+-- p target product
+calc r u p = minimum . map resource . part (qt p) $ search (ch p) u  # show (minimumBy (on compare resource) . part (qt p) $ search (ch p) u)
+   where
+   resource :: [Reaction] -> Int
+   resource = sum . map go
+      where
+      go (R _ ps)
+         | [P c q] <- ps , c == r = q  # "found " ++ show ps
+         | otherwise = sum $ map (calc r u) ps  # "calqing " ++ show ps
 
 -- from a list of recipes
 -- list every possible combination of obtaining x Ch
 part :: Int -> [Reaction] -> [[Reaction]]
-part n rs =  echo tree 
---                    ^ ore nedded (find recursively)
+part n rs = echo tree 
    where
    rs' = sortBy (comparing (qt . produce)) rs
    tree :: Tree Reaction
@@ -52,15 +66,15 @@ part n rs =  echo tree
       go :: Int -> [Reaction] -> [Tree Reaction]
       go _ [] = []
       go i (x:xs)
-         | i > 0 = Tree x (go (i - (qt $ produce x)) (x:xs)) : go i xs
+         | i > 0 = Tree x (go (i - qt  (produce x)) (x:xs)) : go i xs
          | otherwise = []
    -- get all root to leaf paths
    echo :: Tree Reaction -> [[Reaction]]
-   echo t = go [] t
+   echo = go [] 
       where
       go acc (Root []) = [acc]
       go acc (Root ts) = join $ go acc <$> ts
-      go acc (Tree x []) = [(x:acc)]
+      go acc (Tree x []) = [x:acc]
       go acc (Tree x ts) = join $ go (x:acc) <$> ts
 
 search :: Ch -> [Reaction] -> [Reaction]
@@ -69,12 +83,3 @@ search c (x:xs)
    | P c' _ <- produce x, c' == c = x : search c xs
    | otherwise = search c xs
 
---derive :: Chemical -> Reaction -> Product
--- recursively find production in reaction until Chemical is found
-
---cost :: [Reaction] -> 
---cost [] _ = error "fuel recipe absent"
---cost rs c = map calc recipes
---   where
---   recipes = filter (== c . fst) rs
---   calc :: Reaction -> 
