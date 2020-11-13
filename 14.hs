@@ -1,4 +1,4 @@
-import Zero
+import Zero.Zero
 import Data.List.Extra (splitOn,stripInfix)
 import Data.Maybe
 import Data.Tuple
@@ -36,6 +36,7 @@ parse = map f . lines
 main :: IO ()
 main = do
    input <- parse <$> readFile "14.txt"
+   itest <- parse <$> readFile "14.test"
 -- print $ search (Ch "RKBM") input
 -- print $ search (Ch "ORE") input
 -- print $ search (Ch "FUEL") input

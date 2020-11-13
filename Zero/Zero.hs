@@ -1,7 +1,7 @@
 module Zero.Zero where
 
+import Zero.Draw
 import Debug.Trace
-import Draw
 
 infix 1 #
 (#) :: a -> String -> a
