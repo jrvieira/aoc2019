@@ -1,4 +1,4 @@
-import Zero
+import Zero.Zero
 import Control.Monad
 
 main :: IO ()

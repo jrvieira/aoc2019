@@ -1,4 +1,4 @@
-module Draw (draw) where
+module Zero.Draw (draw) where
 
 import Codec.Picture
 import Data.Bifunctor

@@ -1,4 +1,4 @@
-module Zero where
+module Zero.Zero where
 
 import Debug.Trace
 import Draw
