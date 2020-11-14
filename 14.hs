@@ -1,5 +1,5 @@
 import Zero.Zero
-import Data.List.Extra (splitOn,stripInfix)
+import Data.List.Extra (splitOn,minimumOn,stripInfix)
 import Data.Maybe
 import Data.Tuple
 import Data.Bifunctor
@@ -7,6 +7,7 @@ import Data.List
 import Data.Ord
 import Data.Function
 import Control.Monad
+import Control.Arrow
 
 newtype Ch = Ch { name :: String } 
    deriving (Eq,Show)
@@ -36,31 +37,34 @@ parse = map f . lines
 main :: IO ()
 main = do
    input <- parse <$> readFile "14.txt"
-   itest <- parse <$> readFile "14.test"
--- print $ search (Ch "RKBM") input
--- print $ search (Ch "ORE") input
--- print $ search (Ch "FUEL") input
-   print $ calc (Ch "ORE") input (P (Ch "QMVN") 1)
+   --print $ search (Ch "RKBM") input
+   --print $ search (Ch "ORE") input
+   --print $ search (Ch "FUEL") input
+   print $ calq (Ch "ORE") input (P (Ch "QMVN") 1)
+   putStrLn "\ntest:\n"
+   tests <- map parse . splitOn "\n\n" <$> readFile "14.test"
+   print . ((== [31,165,13312,180697,2210736,0]) &&& id) $ (\x -> calq (Ch "ORE") x (P (Ch "FUEL") 1)) <$> tests
+   print $ calq (Ch "ORE") (last tests) (P (Ch "STEEL") 1)
 
-calc :: Ch -> [Reaction] -> Product -> Int
+calq :: Ch -> [Reaction] -> Product -> Int
 -- r basic resource chemical
 -- u universe of all reactions
 -- p target product
-calc r u p = minimum . map resource . part (qt p) $ search (ch p) u  # show (minimumBy (on compare resource) . part (qt p) $ search (ch p) u)
+calq r u p = minimum . map resource . part (qt p) $ search (ch p) u -- # "minm: " ++ show (minimumOn resource . part (qt p) $ search (ch p) u)
    where
    resource :: [Reaction] -> Int
    resource = sum . map go
       where
       go (R _ ps)
-         | [P c q] <- ps , c == r = q  # "found " ++ show ps
-         | otherwise = sum $ map (calc r u) ps  # "calqing " ++ show ps
+         | [P c q] <- ps , c == r = q -- # "found " ++ show ps
+         | otherwise = sum $ map (calq r u) ps -- # "calq: " ++ show ps
 
 -- from a list of recipes
 -- list every possible combination of obtaining x Ch
 part :: Int -> [Reaction] -> [[Reaction]]
 part n rs = echo tree 
    where
-   rs' = sortBy (comparing (qt . produce)) rs
+   rs' = sortOn (qt . produce) rs -- sortBy (on compare (qt . produce)) rs -- sortBy (comparing (qt . produce)) rs
    tree :: Tree Reaction
    tree = Root $ go n rs'
       where
@@ -74,9 +78,9 @@ part n rs = echo tree
    echo = go [] 
       where
       go acc (Root []) = [acc]
-      go acc (Root ts) = join $ go acc <$> ts
+      go acc (Root ts) = ts >>= go acc -- join $ go acc <$> ts
       go acc (Tree x []) = [x:acc]
-      go acc (Tree x ts) = join $ go (x:acc) <$> ts
+      go acc (Tree x ts) = ts >>= go (x : acc) -- join $ go (x:acc) <$> ts
 
 search :: Ch -> [Reaction] -> [Reaction]
 search _ [] = []

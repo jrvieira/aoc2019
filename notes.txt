@@ -62,6 +62,7 @@ v  study echo
 v  draw data structure map (by hand):
    v  tree of possible combinations of recipesm (crt)
    v  tree of crts ("ORE" is leaf)
--  recursively find ORE cost and select by minimum
+v  recursively find ORE cost and select by minimum
+- account for leftovers
 
 
