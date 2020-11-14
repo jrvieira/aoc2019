@@ -4,3 +4,4 @@
 /*.io
 !*.txt
 !*.hs
+.DS_Store
