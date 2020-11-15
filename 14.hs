@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPattenrs #-}
+
 import Zero.Zero
 import Data.List.Extra (splitOn,minimumOn,stripInfix)
 import Data.Maybe
@@ -8,9 +10,11 @@ import Data.Ord
 import Data.Function
 import Control.Monad
 import Control.Arrow
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 
 newtype Ch = Ch { name :: String } 
-   deriving (Eq,Show)
+   deriving (Ord,Eq,Show)
 
 data Product = P { ch :: Ch , qt :: Int }
 
@@ -19,10 +23,12 @@ instance Show Product where
 
 data Reaction = R { produce :: Product , ingredients :: [Product] }
 
+data Part = Part { reactions :: [Reaction] , leftovers :: Map Ch Int }
+
 instance Show Reaction where
    show (R p i) = show p ++ show i ++ " "
 
-data Tree a = Root [Tree a] | Tree a [Tree a] 
+data Tree a = Root [Tree a] | Tree a [Tree a]
 
 -- parse input into list of R { produce , ingredients }
 parse :: String -> [Reaction]
@@ -37,27 +43,31 @@ parse = map f . lines
 main :: IO ()
 main = do
    input <- parse <$> readFile "14.txt"
-   --print $ search (Ch "RKBM") input
-   --print $ search (Ch "ORE") input
-   --print $ search (Ch "FUEL") input
-   print $ calq (Ch "ORE") input (P (Ch "QMVN") 1)
+   print $ solve "QMVN" 1 "ORE" input
    putStrLn "\ntest:\n"
    tests <- map parse . splitOn "\n\n" <$> readFile "14.test"
-   print . ((== [31,165,13312,180697,2210736,0]) &&& id) $ (\x -> calq (Ch "ORE") x (P (Ch "FUEL") 1)) <$> tests
-   print $ calq (Ch "ORE") (last tests) (P (Ch "STEEL") 1)
+   --print . ((== [31,165,13312,180697,2210736,0]) &&& id) $ solve "FUEL" 1 "ORE" <$> tests
+   print $ solve "STEEL" 1 "ORE" (last tests)
 
-calq :: Ch -> [Reaction] -> Product -> Int
+solve :: String -> Int -> String -> [Reaction] -> Int
+solve p n r u = calq (Ch r) u Map.empty (P (Ch p) n)
+
+calq :: Ch -> [Reaction] -> Map Ch Int -> Product -> Int
 -- r basic resource chemical
 -- u universe of all reactions
+-- l leftover
 -- p target product
-calq r u p = minimum . map resource . part (qt p) $ search (ch p) u -- # "minm: " ++ show (minimumOn resource . part (qt p) $ search (ch p) u)
+calq r u l p = minimum . map resource . part (qt p - i) $ search (ch p) u -- # "minm: " ++ show (minimumOn resource . part (qt p) $ search (ch p) u)
    where
+   i = fromMaybe 0 $ Map.lookup (ch p) l
    resource :: [Reaction] -> Int
-   resource = sum . map go
+   resource !rs = sum $ map go rs
       where
-      go (R _ ps)
+      go (R dbg ps)
+         | False  # "dbg: " ++ show dbg = undefined
          | [P c q] <- ps , c == r = q -- # "found " ++ show ps
-         | otherwise = sum $ map (calq r u) ps -- # "calq: " ++ show ps
+         | otherwise = sum $ map (calq r u l') ps -- # "calq: " ++ show ps
+      l' = Map.insert (ch p) (sum (map (qt . produce) rs) - qt p) l  # show (sum (map (qt.produce) rs) - qt p,p,rs)
 
 -- from a list of recipes
 -- list every possible combination of obtaining x Ch
