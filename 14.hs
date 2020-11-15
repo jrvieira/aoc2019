@@ -23,8 +23,6 @@ instance Show Product where
 
 data Reaction = R { produce :: Product , ingredients :: [Product] }
 
-data Part = Part { reactions :: [Reaction] , leftovers :: Map Ch Int }
-
 instance Show Reaction where
    show (R p i) = show p ++ show i ++ " "
 
