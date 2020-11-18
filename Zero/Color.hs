@@ -1,6 +1,6 @@
 module Zero.Color (Color (..),clr) where
 
-data Color = Reset | Default | Black | Red | Green | Yellow | Blue | Magenta | Cyan | White | Bold | Dim | Italic | Strike | Underline | Reverse
+data Color = Reset | Default | Black | Red | Green | Yellow | Blue | Magenta | Cyan | White | Bold | Dim | Grey | Italic | Strike | Underline | Reverse
 
 code :: Color -> Int
 code Reset = 0
@@ -15,6 +15,7 @@ code Cyan = 36
 code White = 37
 code Bold = 1
 code Dim = 2
+code Grey = 2
 code Italic = 3
 code Strike = 9
 code Underline = 4

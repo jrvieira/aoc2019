@@ -1,7 +1,8 @@
 module Zero.Zero where
 
-import Zero.Draw
 import Debug.Trace
+import Zero.Color
+import Zero.Draw
 
 infix 1 #
 (#) :: a -> String -> a
@@ -49,3 +50,17 @@ plot f = draw f . go 0
    where
    go _ [] = []
    go n (x:xs) = [((n,y),True) | y <- [0..x]] ++ go (succ n) xs
+
+test :: Show a => String -> (a -> Bool) -> a -> IO ()
+test t p a = putStrLn $ unwords [t , clr c m , '\n' : clr c (show a) , "\n"]
+   where
+   (c,m)
+      | p a = (Green,"v")
+      | otherwise = (Red,"x")
+
+teqt :: (Eq a,Show a) => String -> a -> a -> IO ()
+teqt t e a = putStrLn $ unwords [t , clr c m , r , '\n' : clr c (show a) , "\n"]
+   where
+   (c,m,r)
+      | a == e = (Green,"v","")
+      | otherwise = (Red,"x",'\n' : show e)

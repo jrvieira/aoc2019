@@ -1,6 +1,6 @@
-module Zero.Shut (test,unit) where
+module Zero.Shut (shut,unit) where
 
-import Color
+import Zero.Color
 import Data.List
 import System.Exit
 
@@ -27,8 +27,8 @@ unit :: (Eq a,Show a) => String -> a -> a -> Unit
 unit d t v = if t /= v then Fail d (show t) (show v) else Pass d (show t)
 
 
-test :: [Unit] -> IO ()
-test t = do
+shut :: [Unit] -> IO ()
+shut t = do
    putStrLn $ "\n" ++ (unlines (map show t) ++ result)
    exitWith $ if failed then ExitFailure 1 else ExitSuccess
    where
@@ -40,7 +40,7 @@ test t = do
 
 {- USAGE:
 
-   test [
+   shut [
       unit "description test 1" (test 1) expected1
       ,
       unit "description test 2" (test 2) expected2
