@@ -19,10 +19,8 @@ main = do
    print $ reveng memory 19690720
 
 type Memory = M.Map Int Int
-data Op = Op {
-   address :: Int,
-   value :: Int
-   } deriving Show
+data Op = Op { address :: Int , value :: Int }
+   deriving Show
 
 op :: Op -> Memory -> Memory
 op (Op addr val) = M.insert addr val 
