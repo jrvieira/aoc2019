@@ -4,6 +4,7 @@ import Zero.Zero
 import Data.List.Split
 import Data.Foldable
 import Data.Maybe
+import Data.Bifunctor
 import qualified Data.Map as M
 import Control.Arrow
 
@@ -48,7 +49,7 @@ type Ch = String
 
 -- how much ore is needed to produce t * FUEL?
 μ :: Integer -> M.Map Ch (Integer,[(Ch,Integer)]) -> Integer
-μ t = η "ORE" . M.adjust (\(n,is) -> (n*t,fmap (*t) <$> is)) "FUEL"
+μ t = η "ORE" . M.adjust (bimap (t*) (fmap (t*) <$>)) "FUEL"
 
 -- how many FUEL can be produced with i ORE ? (binary search)
 β :: Integer -> M.Map Ch (Integer,[(Ch,Integer)]) -> Integer
@@ -56,7 +57,7 @@ type Ch = String
    where
    go :: Integer -> Integer -> Integer -> Integer
    go lo hi n
-      | False  # show n = undefined
+   -- | False  # show n = undefined
       | n == lo || n == hi = lo
       | μ n m < i = go n hi (n + div (hi - n) 2)
       | μ n m > i = go lo n (n - div (n - lo) 2)
