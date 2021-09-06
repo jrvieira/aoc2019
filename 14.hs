@@ -22,8 +22,8 @@ parse = M.fromList . fmap parsel . splitOn "\n"
 test :: IO ()
 test = do
    input <- fmap parse . init . splitOn "\n\n" <$> readFile "14.test"
-   teqt "part 1" [31,165,13312,180697,2210736] $ fmap (η "ORE") input
-   teqt "part 2" [82892753,5586022,460664] $ fmap (β 1000000000000) (drop 2 input)
+   teqt "part 1" [31,165,13312,180697,2210736] $ η "ORE" <$> input
+   teqt "part 2" [82892753,5586022,460664] $ β 1000000000000 <$> drop 2 input
 
 main :: IO ()
 main = do
@@ -39,11 +39,11 @@ type Ch = String
 
 -- how much ch is needed to produce the FUEL? (FUEL happens to be always 1)
 η :: Ch -> M.Map Ch (Integer,[(Ch,Integer)]) -> Integer
-η ch m = φ prod $ sum $ fmap (uncurry (*) . (flip η m . fst &&& snd)) is -- # show (prod,is)
+η ch m = φ p $ sum $ fmap (uncurry (*) . (flip η m . fst &&& snd)) is -- # show (prod,is)
    where
+   p = maybe 1 fst $ m M.!? ch
    is :: [(Ch,Integer)]
    is = M.toList $ M.map fromJust $ M.filter isJust $ M.map (fmap snd . find ((== ch) . fst) . snd) m
-   prod = maybe 1 fst $ m M.!? ch
 
 -- part 2
 
@@ -57,7 +57,7 @@ type Ch = String
    where
    go :: Integer -> Integer -> Integer -> Integer
    go lo hi n
-   -- | False  # show n = undefined
+      | False  # show n = undefined
       | n == lo || n == hi = lo
       | μ n m < i = go n hi (n + div (hi - n) 2)
       | μ n m > i = go lo n (n - div (n - lo) 2)
